@@ -152,7 +152,27 @@ function init() {
     const metallicMap = materials.load("/path to material");
     const normalMap = materials.load("/path to material");
     const roughnessMap = materials.load("/path to material");
-    // no aoMap ...maybe add some ambient lighting as a work around
+
+    const basecolorMap = materials.load("/path to material");
+    const metallicMap = materials.load("/path to material");
+    const normalMap = materials.load("/path to material");
+    const roughnessMap = materials.load("/path to material");
+
+    const basecolorMap = materials.load("/path to material");
+    const metallicMap = materials.load("/path to material");
+    const normalMap = materials.load("/path to material");
+    const roughnessMap = materials.load("/path to material");
+
+    const basecolorMap = materials.load("/path to material");
+    const metallicMap = materials.load("/path to material");
+    const normalMap = materials.load("/path to material");
+    const roughnessMap = materials.load("/path to material");
+
+    const basecolorMap = materials.load("/path to material");
+    const metallicMap = materials.load("/path to material");
+    const normalMap = materials.load("/path to material");
+    const roughnessMap = materials.load("/path to material");
+
     const objMaterial = new MeshStandardMaterial({
       map: "",
       // metalness: "",
@@ -245,8 +265,6 @@ function init() {
       "orange"
     );
     pointLightHelper.visible = false;
-    group.add(pointLightHelper);
-
     const gridHelper = new GridHelper(20, 20, "teal", "darkgray");
     gridHelper.position.y = -0.01;
     group.add(gridHelper);
