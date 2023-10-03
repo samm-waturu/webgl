@@ -168,9 +168,11 @@ function init() {
   {
     gltfLoader = new GLTFLoader();
     gltfLoader.load(
-      "/src/assets/3d_models/buddha.gltf",
+      "/src/assets/3d_models/mmk.gltf",
       (gltf: object | undefined) => {
-        gltf.scene.children[0].material = "some material";
+        // gltf.scene.children[0].material = "some material";
+        // gltf.scene.children[0].position = "some position";
+        // gltf.scene.children[0].scale = "some scale";
         group.add(gltf.scene);
         console.log(gltf);
       }
