@@ -43,8 +43,6 @@ let clock: Clock;
 let stats: Stats;
 let gui: GUI;
 
-console.log("hello world");
-
 const animation = { enabled: false, play: true };
 
 init();
