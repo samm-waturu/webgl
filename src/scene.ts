@@ -9,14 +9,17 @@ import {
   Mesh,
   MeshLambertMaterial,
   MeshStandardMaterial,
+  TextureLoader,
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   PointLight,
   PointLightHelper,
+  Group,
   Scene,
   WebGLRenderer
 } from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DragControls } from "three/examples/jsm/controls/DragControls";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import Stats from "three/examples/jsm/libs/stats.module";
@@ -29,6 +32,9 @@ const CANVAS_ID = "scene";
 
 let canvas: HTMLElement;
 let renderer: WebGLRenderer;
+let group: Group;
+let materials: TextureLoader;
+let gltfLoader: GLTFLoader;
 let scene: Scene;
 let loadingManager: LoadingManager;
 let ambientLight: AmbientLight;
@@ -61,6 +67,10 @@ function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
     scene = new Scene();
+    // MODIFICATION: ADDING A GROUP
+    group = new Group();
+
+    scene.add(group);
   }
 
   // ===== 👨🏻‍💼 LOADING MANAGER =====
@@ -93,8 +103,8 @@ function init() {
     pointLight.shadow.camera.far = 4000;
     pointLight.shadow.mapSize.width = 2048;
     pointLight.shadow.mapSize.height = 2048;
-    scene.add(ambientLight);
-    scene.add(pointLight);
+    group.add(ambientLight);
+    group.add(pointLight);
   }
 
   // ===== 📦 OBJECTS =====
@@ -127,8 +137,44 @@ function init() {
     plane.rotateX(Math.PI / 2);
     plane.receiveShadow = true;
 
-    scene.add(cube);
-    scene.add(plane);
+    // scene.add(cube);
+    // scene.add(plane);
+  }
+
+  // ===== 📦 GLTF OBJECTS & MATERIALS =====
+
+  // MATERIALS & TEXTURES
+
+  {
+    materials = new TextureLoader();
+
+    const basecolorMap = materials.load("/path to material");
+    const metallicMap = materials.load("/path to material");
+    const normalMap = materials.load("/path to material");
+    const roughnessMap = materials.load("/path to material");
+    // no aoMap ...maybe add some ambient lighting as a work around
+    const objMaterial = new MeshStandardMaterial({
+      map: "",
+      // metalness: "",
+      metalnessMap: "",
+      normalMap: "",
+      // roughness: "",
+      roughnessMap: "",
+      envMap: "",
+      envMapIntensity: ""
+    });
+  }
+  // GLTF LOADER
+  {
+    gltfLoader = new GLTFLoader();
+    gltfLoader.load(
+      "/src/assets/3d_models/buddha.gltf",
+      (gltf: object | undefined) => {
+        gltf.scene.children[0].material = "some material";
+        group.add(gltf.scene);
+        console.log(gltf);
+      }
+    );
   }
 
   // ===== 🎥 CAMERA =====
@@ -151,7 +197,7 @@ function init() {
     cameraControls.update();
 
     dragControls = new DragControls(
-      [cube],
+      [gltfLoader],
       camera,
       renderer.domElement
     );
@@ -189,7 +235,7 @@ function init() {
   {
     axesHelper = new AxesHelper(4);
     axesHelper.visible = false;
-    scene.add(axesHelper);
+    group.add(axesHelper);
 
     pointLightHelper = new PointLightHelper(
       pointLight,
@@ -197,11 +243,11 @@ function init() {
       "orange"
     );
     pointLightHelper.visible = false;
-    scene.add(pointLightHelper);
+    group.add(pointLightHelper);
 
     const gridHelper = new GridHelper(20, 20, "teal", "darkgray");
     gridHelper.position.y = -0.01;
-    scene.add(gridHelper);
+    group.add(gridHelper);
   }
 
   // ===== 📈 STATS & CLOCK =====
