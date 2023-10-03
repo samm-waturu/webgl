@@ -148,40 +148,118 @@ function init() {
   {
     materials = new TextureLoader();
 
-    const basecolorMap = materials.load("/path to material");
-    const metallicMap = materials.load("/path to material");
-    const normalMap = materials.load("/path to material");
-    const roughnessMap = materials.load("/path to material");
+    // BODYLOW
+    const basecolorMap_bodyLow = materials.load(
+      "/src/assets/3d_models/textures/body_low/bl_bc.jpg"
+    );
+    const metallicMap_bodyLow = materials.load(
+      "/src/assets/3d_models/textures/body_low/bl_ml.jpg"
+    );
+    const normalMap_bodyLow = materials.load(
+      "/src/assets/3d_models/textures/body_low/bl_nm.jpg"
+    );
+    const roughnessMap_bodyLow = materials.load(
+      "/src/assets/3d_models/textures/body_low/bl_rh.jpg"
+    );
 
-    const basecolorMap = materials.load("/path to material");
-    const metallicMap = materials.load("/path to material");
-    const normalMap = materials.load("/path to material");
-    const roughnessMap = materials.load("/path to material");
+    // const spec_unknown = materials.load("/path to spec")
 
-    const basecolorMap = materials.load("/path to material");
-    const metallicMap = materials.load("/path to material");
-    const normalMap = materials.load("/path to material");
-    const roughnessMap = materials.load("/path to material");
+    const basecolorMap_clothLow = materials.load(
+      "/src/assets/3d_models/textures/cloth_low/cl_bc.png"
+    );
+    const metallicMap_clothLow = materials.load(
+      "/src/assets/3d_models/textures/cloth_low/cl_ml.png"
+    );
+    const normalMap_clothLow = materials.load(
+      "/src/assets/3d_models/textures/cloth_low/cl_nm.jpg"
+    );
+    const roughnessMap_clothLow = materials.load(
+      "/src/assets/3d_models/textures/cloth_low/cl_rh.png"
+    );
 
-    const basecolorMap = materials.load("/path to material");
-    const metallicMap = materials.load("/path to material");
-    const normalMap = materials.load("/path to material");
-    const roughnessMap = materials.load("/path to material");
+    // HEADLOW
+    const basecolorMap_headLow = materials.load(
+      "/src/assets/3d_models/textures/head_low/hl_bc.jpg"
+    );
+    const metallicMap_headLow = materials.load(
+      "/src/assets/3d_models/textures/head_low/hl_ml.jpg"
+    );
+    const normalMap_headLow = materials.load(
+      "/src/assets/3d_models/textures/head_low/hl_nm.jpg"
+    );
+    const roughnessMap_headLow = materials.load(
+      "/src/assets/3d_models/textures/head_low/hl_rh.jpg"
+    );
 
-    const basecolorMap = materials.load("/path to material");
-    const metallicMap = materials.load("/path to material");
-    const normalMap = materials.load("/path to material");
-    const roughnessMap = materials.load("/path to material");
+    // const spec_unknown = materials.load("/path to spec")
 
-    const objMaterial = new MeshStandardMaterial({
-      map: "",
+    // JEWERLOW
+    const basecolorMap_jewerLow = materials.load(
+      "/src/assets/3d_models/textures/jewer_low/jl_bc.jpg"
+    );
+    const metallicMap_jewerLow = materials.load(
+      "/src/assets/3d_models/textures/jewer_low/jl_ml.jpg"
+    );
+    const normalMap_jewerLow = materials.load(
+      "/src/assets/3d_models/textures/jewer_low/jl_nm.jpg"
+    );
+    const roughnessMap_jewerLow = materials.load(
+      "/src/assets/3d_models/textures/jewer_low/jl_rh.jpg"
+    );
+
+    // ROCKLOW
+    const basecolorMap_rockLow = materials.load(
+      "/src/assets/3d_models/textures/rock_low/rl_bc.jpg"
+    );
+    const metallicMap_rockLow = materials.load(
+      "/src/assets/3d_models/textures/rock_low/rl_ml.jpg"
+    );
+    const normalMap_rockLow = materials.load(
+      "/src/assets/3d_models/textures/rock_low/rl_nm.jpg"
+    );
+    const roughnessMap_rockLow = materials.load(
+      "/src/assets/3d_models/textures/rock_low/rl_rh.jpg"
+    );
+
+    const MESH_BODYLOW = new MeshStandardMaterial({
+      map: basecolorMap_bodyLow,
       // metalness: "",
-      metalnessMap: "",
-      normalMap: "",
+      metalnessMap: metallicMap_bodyLow,
+      normalMap: normalMap_bodyLow,
       // roughness: "",
-      roughnessMap: "",
+      roughnessMap: roughnessMap_bodyLow,
       envMap: "",
-      envMapIntensity: ""
+      envMapIntensity: 0
+    });
+    const MESH_HEADLOW = new MeshStandardMaterial({
+      map: basecolorMap_headLow,
+      // metalness: "",
+      metalnessMap: metallicMap_headLow,
+      normalMap: normalMap_headLow,
+      // roughness: "",
+      roughnessMap: roughnessMap_headLow,
+      envMap: "",
+      envMapIntensity: 0
+    });
+    const MESH_JEWERLOW = new MeshStandardMaterial({
+      map: basecolorMap_jewerLow,
+      // metalness: "",
+      metalnessMap: metallicMap_jewerLow,
+      normalMap: normalMap_jewerLow,
+      // roughness: "",
+      roughnessMap: roughnessMap_jewerLow,
+      envMap: "",
+      envMapIntensity: 0
+    });
+    const MESH_ROCKLOW = new MeshStandardMaterial({
+      map: basecolorMap_rockLow,
+      // metalness: "",
+      metalnessMap: metallicMap_rockLow,
+      normalMap: normalMap_rockLow,
+      // roughness: "",
+      roughnessMap: roughnessMap_rockLow,
+      envMap: "",
+      envMapIntensity: 0
     });
   }
   // GLTF LOADER
