@@ -138,7 +138,7 @@ function init() {
     plane.receiveShadow = true;
 
     // scene.add(cube);
-    // scene.add(plane);
+    group.add(plane);
   }
 
   // ===== 📦 GLTF OBJECTS & MATERIALS =====
@@ -163,6 +163,8 @@ function init() {
     );
 
     // const spec_unknown = materials.load("/path to spec")
+
+    // CLOTHLOW
 
     const basecolorMap_clothLow = materials.load(
       "/src/assets/3d_models/textures/cloth_low/cl_bc.png"
@@ -261,16 +263,36 @@ function init() {
       envMap: "",
       envMapIntensity: 0
     });
-  }
-  // GLTF LOADER
-  {
+    const MESH_CLOTHLOW = new MeshStandardMaterial({
+      map: basecolorMap_clothLow,
+      // metalness: "",
+      metalnessMap: metallicMap_clothLow,
+      normalMap: normalMap_clothLow,
+      // roughness: "",
+      roughnessMap: roughnessMap_clothLow,
+      envMap: "",
+      envMapIntensity: 0
+    });
+
+    // GLTF LOADER
+
     gltfLoader = new GLTFLoader();
     gltfLoader.load(
       "/src/assets/3d_models/mmk.gltf",
       (gltf: object | undefined) => {
-        // gltf.scene.children[0].material = "some material";
-        // gltf.scene.children[0].position = "some position";
-        // gltf.scene.children[0].scale = "some scale";
+        // CLOTHLOW
+        gltf.scene.children[0].material = MESH_CLOTHLOW;
+        // BODYLOW
+        gltf.scene.children[1].material = MESH_BODYLOW;
+        // HEADLOW
+        gltf.scene.children[2].material = MESH_HEADLOW;
+        // ROCKLOW
+        gltf.scene.children[3].material = MESH_ROCKLOW;
+        // JEWERLOW
+        gltf.scene.children[4].material = MESH_JEWERLOW;
+
+        gltf.scene.position.set = (0, 0, 0);
+        gltf.scene.scale.setScalar(0.48);
         group.add(gltf.scene);
         console.log(gltf);
       }
