@@ -9,9 +9,17 @@ import {
   Mesh,
   MeshLambertMaterial,
   MeshStandardMaterial,
+  MeshPhongMaterial,
+  FogExp2,
+  SRGBColorSpace,
   TextureLoader,
   PCFSoftShadowMap,
+  EquirectangularReflectionMapping,
+  ReinhardToneMapping,
+  ACESFilmicToneMapping,
+  CineonToneMapping,
   PerspectiveCamera,
+  Vector2,
   PlaneGeometry,
   PointLight,
   PointLightHelper,
@@ -19,9 +27,17 @@ import {
   Scene,
   WebGLRenderer
 } from "three";
+import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DragControls } from "three/examples/jsm/controls/DragControls";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { BloomPass } from "three/addons/postprocessing/BloomPass.js";
+import { FilmPass } from "three/addons/postprocessing/FilmPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import Stats from "three/examples/jsm/libs/stats.module";
 import * as animations from "./helpers/animations";
 import { toggleFullScreen } from "./helpers/fullscreen";
@@ -31,20 +47,36 @@ import "./style.css";
 const CANVAS_ID = "scene";
 
 let canvas: HTMLElement;
+let reinhard: ReinhardToneMapping;
+let acesFilmic: ACESFilmicToneMapping;
+let cineonFilmic: CineonToneMapping;
 let renderer: WebGLRenderer;
-let group: Group;
-let materials: TextureLoader;
-let gltfLoader: GLTFLoader;
+let colorEncoder: SRGBColorSpace;
+let fog: FogExp2;
 let scene: Scene;
+let group: Group;
+let obj: GLTFLoader;
+let materials: TextureLoader;
 let loadingManager: LoadingManager;
+let worldHDR: RGBELoader;
+let composer: EffectComposer;
+let afterImgPass: AfterimagePass;
+let unrealBlmPass: UnrealBloomPass;
+let bloomPass: BloomPass;
+let FilmPass: FilmPass;
+let outputPass: OutputPass;
+let renderPass: RenderPass;
+let intensity: number = 2.16548;
+let mappingHDR: EquirectangularReflectionMapping;
 let ambientLight: AmbientLight;
-let pointLight: PointLight;
-let cube: Mesh;
+let pointLight_0: PointLight;
+let pointLight_1: pointLight;
 let camera: PerspectiveCamera;
 let cameraControls: OrbitControls;
 let dragControls: DragControls;
 let axesHelper: AxesHelper;
 let pointLightHelper: PointLightHelper;
+let pointLightHelper_2: PointLightHelper;
 let clock: Clock;
 let stats: Stats;
 let gui: GUI;
@@ -61,11 +93,21 @@ function init() {
     renderer = new WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: true
+      alpha: true,
+      gammaFactor: 1.2,
+      gammaOutput: true
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
+    renderer.toneMapping = reinhard = ReinhardToneMapping;
+    // acesFilmic = ACESFilmicToneMapping
+    // cineonFilmic = CineonToneMapping
+    renderer.toneMappingExposure = 0.699;
+    renderer.outputColorSpace = colorEncoder = SRGBColorSpace;
+
+    console.log(renderer);
+
     scene = new Scene();
     // MODIFICATION: ADDING A GROUP
     group = new Group();
@@ -92,38 +134,53 @@ function init() {
     };
   }
 
+  // ===== 🌎 HDRI =====
+
+  {
+    worldHDR = new RGBELoader()
+      .setPath("/src/assets/dir_HDR/")
+      .load("shanghai_bund_4k.hdr", () => {
+        worldHDR.mapping = mappingHDR =
+          EquirectangularReflectionMapping;
+      });
+    scene.background = worldHDR;
+    scene.environment = worldHDR;
+    scene.backgroundBlurriness = 0.5213;
+    scene.backgroundIntensity = 0.42456;
+    console.log(worldHDR);
+
+    // ===== 🌫 FOG =====
+
+    scene.fog = fog = new FogExp2(0x11151c, 0.1);
+  }
+
   // ===== 💡 LIGHTS =====
   {
-    ambientLight = new AmbientLight("white", 0.4);
-    pointLight = new PointLight("#ffdca8", 1.2, 100);
-    pointLight.position.set(-2, 3, 3);
-    pointLight.castShadow = true;
-    pointLight.shadow.radius = 4;
-    pointLight.shadow.camera.near = 0.5;
-    pointLight.shadow.camera.far = 4000;
-    pointLight.shadow.mapSize.width = 2048;
-    pointLight.shadow.mapSize.height = 2048;
+    ambientLight = new AmbientLight("white", 0.21789);
+    pointLight_0 = new PointLight(0x85ccb8, 6, 20);
+    pointLight_1 = new PointLight(0x9f85cc, 6, 20);
+
+    pointLight_0.castShadow = true;
+    pointLight_0.shadow.radius = 4;
+    pointLight_0.shadow.camera.near = 0.5;
+    pointLight_0.shadow.camera.far = 4000;
+    pointLight_0.shadow.mapSize.width = 2048;
+    pointLight_0.shadow.mapSize.height = 2048;
+    pointLight_1.castShadow = true;
+    pointLight_1.shadow.radius = 4;
+    pointLight_1.shadow.camera.near = 0.5;
+    pointLight_1.shadow.camera.far = 4000;
+    pointLight_1.shadow.mapSize.width = 2048;
+    pointLight_1.shadow.mapSize.height = 2048;
+
+    pointLight_0.position.set(0, 3, 2);
+    pointLight_1.position.set(0, 3, 2);
     group.add(ambientLight);
-    group.add(pointLight);
+    group.add(pointLight_0, pointLight_1);
   }
 
   // ===== 📦 OBJECTS =====
   {
-    const sideLength = 1;
-    const cubeGeometry = new BoxGeometry(
-      sideLength,
-      sideLength,
-      sideLength
-    );
-    const cubeMaterial = new MeshStandardMaterial({
-      color: "#f69f1f",
-      metalness: 0.5,
-      roughness: 0.7
-    });
-    cube = new Mesh(cubeGeometry, cubeMaterial);
-    cube.castShadow = true;
-    cube.position.y = 0.5;
-
     const planeGeometry = new PlaneGeometry(3, 3);
     const planeMaterial = new MeshLambertMaterial({
       color: "gray",
@@ -147,6 +204,7 @@ function init() {
 
   {
     materials = new TextureLoader();
+    materials.encoding = colorEncoder = SRGBColorSpace;
 
     // BODYLOW
     const basecolorMap_bodyLow = materials.load(
@@ -161,8 +219,9 @@ function init() {
     const roughnessMap_bodyLow = materials.load(
       "/src/assets/3d_models/textures/body_low/bl_rh.jpg"
     );
-
-    // const spec_unknown = materials.load("/path to spec")
+    const emissiveMap_bodyLow = materials.load(
+      "/src/assets/3d_models/textures/body_low/bl_sc.jpg"
+    );
 
     // CLOTHLOW
 
@@ -192,8 +251,11 @@ function init() {
     const roughnessMap_headLow = materials.load(
       "/src/assets/3d_models/textures/head_low/hl_rh.jpg"
     );
+    const emissiveMap_headLow = materials.load(
+      "/src/assets/3d_models/textures/head_low/hl_sc.jpg"
+    );
 
-    // const spec_unknown = materials.load("/path to spec")
+    // const conf = new MeshPhongMaterial()
 
     // JEWERLOW
     const basecolorMap_jewerLow = materials.load(
@@ -222,6 +284,12 @@ function init() {
     const roughnessMap_rockLow = materials.load(
       "/src/assets/3d_models/textures/rock_low/rl_rh.jpg"
     );
+    /*
+    // Lacks ...sc file
+    const emissiveMap_rockLow = materials.load(
+      "/src/assets/3d_models/textures/rock_low/rl_rh.jpg"
+    );
+    */
 
     const MESH_BODYLOW = new MeshStandardMaterial({
       map: basecolorMap_bodyLow,
@@ -230,8 +298,9 @@ function init() {
       normalMap: normalMap_bodyLow,
       // roughness: "",
       roughnessMap: roughnessMap_bodyLow,
-      envMap: "",
-      envMapIntensity: 0
+      emissiveMap: emissiveMap_bodyLow,
+      envMap: worldHDR,
+      envMapIntensity: intensity
     });
     const MESH_HEADLOW = new MeshStandardMaterial({
       map: basecolorMap_headLow,
@@ -240,8 +309,9 @@ function init() {
       normalMap: normalMap_headLow,
       // roughness: "",
       roughnessMap: roughnessMap_headLow,
-      envMap: "",
-      envMapIntensity: 0
+      emissiveMap: emissiveMap_headLow,
+      envMap: worldHDR,
+      envMapIntensity: intensity
     });
     const MESH_JEWERLOW = new MeshStandardMaterial({
       map: basecolorMap_jewerLow,
@@ -250,8 +320,8 @@ function init() {
       normalMap: normalMap_jewerLow,
       // roughness: "",
       roughnessMap: roughnessMap_jewerLow,
-      envMap: "",
-      envMapIntensity: 0
+      envMap: worldHDR,
+      envMapIntensity: intensity
     });
     const MESH_ROCKLOW = new MeshStandardMaterial({
       map: basecolorMap_rockLow,
@@ -261,7 +331,7 @@ function init() {
       // roughness: "",
       roughnessMap: roughnessMap_rockLow,
       envMap: "",
-      envMapIntensity: 0
+      envMapIntensity: intensity
     });
     const MESH_CLOTHLOW = new MeshStandardMaterial({
       map: basecolorMap_clothLow,
@@ -271,13 +341,13 @@ function init() {
       // roughness: "",
       roughnessMap: roughnessMap_clothLow,
       envMap: "",
-      envMapIntensity: 0
+      envMapIntensity: intensity
     });
 
     // GLTF LOADER
 
-    gltfLoader = new GLTFLoader();
-    gltfLoader.load(
+    obj = new GLTFLoader();
+    obj.load(
       "/src/assets/3d_models/mmk.gltf",
       (gltf: object | undefined) => {
         // CLOTHLOW
@@ -291,16 +361,18 @@ function init() {
         // JEWERLOW
         gltf.scene.children[4].material = MESH_JEWERLOW;
 
-        gltf.scene.position.set = (0, 0, 0);
         gltf.scene.scale.setScalar(0.48);
+
+        gltf.scene.position.set = (0, -10, 0);
+
         group.add(gltf.scene);
-        console.log(gltf);
       }
     );
-  }
 
-  // ===== 🎥 CAMERA =====
-  {
+    console.log(obj, materials);
+
+    // ===== 🎥 CAMERA =====
+
     camera = new PerspectiveCamera(
       50,
       canvas.clientWidth / canvas.clientHeight,
@@ -308,42 +380,46 @@ function init() {
       100
     );
     camera.position.set(2, 2, 5);
-  }
 
-  // ===== 🕹️ CONTROLS =====
-  {
+    // ===== 🕹️ CONTROLS =====
+
     cameraControls = new OrbitControls(camera, canvas);
-    cameraControls.target = cube.position.clone();
     cameraControls.enableDamping = true;
+    cameraControls.target.set = (0, 0, 0);
+    console.log(cameraControls);
     cameraControls.autoRotate = false;
     cameraControls.update();
 
-    dragControls = new DragControls(
-      [gltfLoader],
-      camera,
-      renderer.domElement
-    );
-    dragControls.addEventListener("hoveron", event => {
-      event.object.material.emissive.set("orange");
-    });
-    dragControls.addEventListener("hoveroff", event => {
-      event.object.material.emissive.set("black");
-    });
-    dragControls.addEventListener("dragstart", event => {
-      cameraControls.enabled = false;
-      animation.play = false;
-      event.object.material.emissive.set("black");
-      event.object.material.opacity = 0.7;
-      event.object.material.needsUpdate = true;
-    });
-    dragControls.addEventListener("dragend", event => {
-      cameraControls.enabled = true;
-      animation.play = true;
-      event.object.material.emissive.set("black");
-      event.object.material.opacity = 1;
-      event.object.material.needsUpdate = true;
-    });
-    dragControls.enabled = false;
+    // MOVES THE OBJECT ON DRAG
+
+    /*
+      dragControls = new DragControls(
+        [obj],
+        camera,
+        renderer.domElement
+      );
+      dragControls.addEventListener("hoveron", event => {
+        event.object.material.emissive.set("orange");
+      });
+      dragControls.addEventListener("hoveroff", event => {
+        event.object.material.emissive.set("black");
+      });
+      dragControls.addEventListener("dragstart", event => {
+        cameraControls.enabled = false;
+        animation.play = false;
+        event.object.material.emissive.set("black");
+        event.object.material.opacity = 0.7;
+        event.object.material.needsUpdate = true;
+      });
+      dragControls.addEventListener("dragend", event => {
+        cameraControls.enabled = true;
+        animation.play = true;
+        event.object.material.emissive.set("black");
+        event.object.material.opacity = 1;
+        event.object.material.needsUpdate = true;
+      });
+      dragControls.enabled = false;
+    */
 
     // Full screen
     window.addEventListener("dblclick", event => {
@@ -360,10 +436,16 @@ function init() {
     group.add(axesHelper);
 
     pointLightHelper = new PointLightHelper(
-      pointLight,
+      pointLight_0,
       undefined,
       "orange"
     );
+    pointLightHelper_2 = new PointLightHelper(
+      pointLight_1,
+      undefined,
+      "orange"
+    );
+    group.add(pointLightHelper, pointLightHelper_2);
     pointLightHelper.visible = false;
     const gridHelper = new GridHelper(20, 20, "teal", "darkgray");
     gridHelper.position.y = -0.01;
@@ -378,57 +460,23 @@ function init() {
   }
 
   // ==== 🐞 DEBUG GUI ====
+
   {
     gui = new GUI({ title: "🐞 Debug GUI", width: 300 });
 
-    const cubeOneFolder = gui.addFolder("Cube one");
-
-    cubeOneFolder
-      .add(cube.position, "x")
-      .min(-5)
-      .max(5)
-      .step(0.5)
-      .name("pos x");
-    cubeOneFolder
-      .add(cube.position, "y")
-      .min(-5)
-      .max(5)
-      .step(0.5)
-      .name("pos y");
-    cubeOneFolder
-      .add(cube.position, "z")
-      .min(-5)
-      .max(5)
-      .step(0.5)
-      .name("pos z");
-
-    cubeOneFolder.add(cube.material, "wireframe");
-    cubeOneFolder.addColor(cube.material, "color");
-    cubeOneFolder.add(cube.material, "metalness", 0, 1, 0.1);
-    cubeOneFolder.add(cube.material, "roughness", 0, 1, 0.1);
-
-    cubeOneFolder
-      .add(cube.rotation, "x", -Math.PI * 2, Math.PI * 2, Math.PI / 4)
-      .name("rotate x");
-    cubeOneFolder
-      .add(cube.rotation, "y", -Math.PI * 2, Math.PI * 2, Math.PI / 4)
-      .name("rotate y");
-    cubeOneFolder
-      .add(cube.rotation, "z", -Math.PI * 2, Math.PI * 2, Math.PI / 4)
-      .name("rotate z");
-
-    cubeOneFolder.add(animation, "enabled").name("animated");
-
-    const controlsFolder = gui.addFolder("Controls");
-    controlsFolder.add(dragControls, "enabled").name("drag controls");
-
     const lightsFolder = gui.addFolder("Lights");
-    lightsFolder.add(pointLight, "visible").name("point light");
+    lightsFolder.add(pointLight_0, "visible").name("point light_0");
+    lightsFolder.add(pointLight_1, "visible").name("point light_1");
     lightsFolder.add(ambientLight, "visible").name("ambient light");
 
     const helpersFolder = gui.addFolder("Helpers");
     helpersFolder.add(axesHelper, "visible").name("axes");
-    helpersFolder.add(pointLightHelper, "visible").name("pointLight");
+    helpersFolder
+      .add(pointLightHelper, "visible")
+      .name("pointLight_0");
+    helpersFolder
+      .add(pointLightHelper_2, "visible")
+      .name("pointLight_1");
 
     const cameraFolder = gui.addFolder("Camera");
     cameraFolder.add(cameraControls, "autoRotate");
@@ -452,6 +500,43 @@ function init() {
 
     gui.close();
   }
+
+  // ==== 😨 DEBUG GUI ====
+
+  {
+    afterImgPass = new AfterimagePass();
+
+    afterImgPass.uniforms["damp"].value = 0.85;
+
+    const postParams = {
+      exposure: 0.699,
+      bloomStrength: 0.899,
+      bloomThreshold: 0.499,
+      bloomRadius: 1
+    };
+
+    // UNREAL BLOOM PASS
+
+    unrealBlmPass = new UnrealBloomPass(
+      new Vector2(canvas.clientWidth / canvas.clientHeight),
+      1.5,
+      0.4,
+      0.85
+    );
+
+    // POST PARAMS
+    unrealBlmPass.threshold = postParams.bloomThreshold;
+    unrealBlmPass.exposure = postParams.exposure;
+    unrealBlmPass.strength = postParams.bloomStrength;
+    unrealBlmPass.radius = postParams.bloomRadius;
+
+    // COMPOSER
+    composer = new EffectComposer(renderer);
+    composer.addPass((renderPass = new RenderPass(scene, camera)));
+    composer.addPass(afterImgPass);
+    composer.addPass(unrealBlmPass);
+    composer.addPass((outputPass = new OutputPass()));
+  }
 }
 
 function animate() {
@@ -472,5 +557,7 @@ function animate() {
 
   cameraControls.update();
 
-  renderer.render(scene, camera);
+  // renderer.render(scene, camera);
+
+  composer.render();
 }
