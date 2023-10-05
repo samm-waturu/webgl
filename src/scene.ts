@@ -59,6 +59,7 @@ let obj: GLTFLoader;
 let materials: TextureLoader;
 let loadingManager: LoadingManager;
 let worldHDR: RGBELoader;
+let worldHDR_2: RGBELoader;
 let composer: EffectComposer;
 let afterImgPass: AfterimagePass;
 let unrealBlmPass: UnrealBloomPass;
@@ -66,7 +67,8 @@ let bloomPass: BloomPass;
 let FilmPass: FilmPass;
 let outputPass: OutputPass;
 let renderPass: RenderPass;
-let intensity: number = 2.16548;
+let vector: Vector2;
+let intensity: number = 5.16548;
 let mappingHDR: EquirectangularReflectionMapping;
 let ambientLight: AmbientLight;
 let pointLight_0: PointLight;
@@ -97,6 +99,7 @@ function init() {
       gammaFactor: 1.2,
       gammaOutput: true
     });
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
@@ -139,26 +142,27 @@ function init() {
   {
     worldHDR = new RGBELoader()
       .setPath("/src/assets/dir_HDR/")
-      .load("shanghai_bund_4k.hdr", () => {
+      .load("blaubeuren_night_4k.hdr", () => {
         worldHDR.mapping = mappingHDR =
           EquirectangularReflectionMapping;
       });
+
     scene.background = worldHDR;
     scene.environment = worldHDR;
-    scene.backgroundBlurriness = 0.5213;
-    scene.backgroundIntensity = 0.42456;
+    scene.backgroundBlurriness = 0.8213;
+    scene.backgroundIntensity = 0.32456;
     console.log(worldHDR);
 
     // ===== 🌫 FOG =====
 
-    scene.fog = fog = new FogExp2(0x11151c, 0.1);
+    scene.fog = fog = new FogExp2(0x11151c, 0.17);
   }
 
   // ===== 💡 LIGHTS =====
   {
-    ambientLight = new AmbientLight("white", 0.21789);
-    pointLight_0 = new PointLight(0x85ccb8, 6, 20);
-    pointLight_1 = new PointLight(0x9f85cc, 6, 20);
+    ambientLight = new AmbientLight("white", 0.31789);
+    pointLight_0 = new PointLight(0x85ccb8, 8, 20);
+    pointLight_1 = new PointLight(0x9f85cc, 8, 20);
 
     pointLight_0.castShadow = true;
     pointLight_0.shadow.radius = 4;
@@ -330,7 +334,7 @@ function init() {
       normalMap: normalMap_rockLow,
       // roughness: "",
       roughnessMap: roughnessMap_rockLow,
-      envMap: "",
+      envMap: worldHDR,
       envMapIntensity: intensity
     });
     const MESH_CLOTHLOW = new MeshStandardMaterial({
@@ -340,7 +344,7 @@ function init() {
       normalMap: normalMap_clothLow,
       // roughness: "",
       roughnessMap: roughnessMap_clothLow,
-      envMap: "",
+      envMap: worldHDR,
       envMapIntensity: intensity
     });
 
@@ -379,7 +383,7 @@ function init() {
       0.1,
       100
     );
-    camera.position.set(2, 2, 5);
+    camera.position.set(2, 2, 10);
 
     // ===== 🕹️ CONTROLS =====
 
@@ -510,23 +514,22 @@ function init() {
 
     const postParams = {
       exposure: 0.699,
-      bloomStrength: 0.899,
-      bloomThreshold: 0.499,
+      bloomStrength: 1,
+      bloomThreshold: 0.6,
       bloomRadius: 1
     };
 
     // UNREAL BLOOM PASS
 
-    unrealBlmPass = new UnrealBloomPass(
-      new Vector2(canvas.clientWidth / canvas.clientHeight),
-      1.5,
-      0.4,
-      0.85
-    );
+    vector = new Vector2((canvas.clientWidth, canvas.clientHeight));
+
+    console.log(canvas);
+
+    unrealBlmPass = new UnrealBloomPass(vector, 1.5, 0.4, 0.85);
 
     // POST PARAMS
     unrealBlmPass.threshold = postParams.bloomThreshold;
-    unrealBlmPass.exposure = postParams.exposure;
+    // unrealBlmPass.exposure = postParams.exposure;
     unrealBlmPass.strength = postParams.bloomStrength;
     unrealBlmPass.radius = postParams.bloomRadius;
 
