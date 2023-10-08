@@ -9,15 +9,12 @@ import {
   Mesh,
   MeshLambertMaterial,
   MeshStandardMaterial,
-  MeshPhongMaterial,
   FogExp2,
   SRGBColorSpace,
   TextureLoader,
   PCFSoftShadowMap,
   EquirectangularReflectionMapping,
   ReinhardToneMapping,
-  ACESFilmicToneMapping,
-  CineonToneMapping,
   PerspectiveCamera,
   Vector2,
   PlaneGeometry,
@@ -36,8 +33,6 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { GlitchPass } from "three/addons/postprocessing/GlitchPass.js";
-// import { BloomPass } from "three/addons/postprocessing/BloomPass.js";
 import { FilmPass } from "three/addons/postprocessing/FilmPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import Stats from "three/examples/jsm/libs/stats.module";
@@ -50,8 +45,6 @@ const CANVAS_ID = "scene";
 
 let canvas: HTMLElement;
 let reinhard: ReinhardToneMapping;
-let acesFilmic: ACESFilmicToneMapping;
-let cineonFilmic: CineonToneMapping;
 let renderer: WebGLRenderer;
 let colorEncoder: SRGBColorSpace;
 let fog: FogExp2;
@@ -62,16 +55,13 @@ let circle: mesh;
 let materials: TextureLoader;
 let loadingManager: LoadingManager;
 let worldHDR: RGBELoader;
-let worldHDR_2: RGBELoader;
 let composer: EffectComposer;
 let afterImgPass: AfterimagePass;
 let unrealBlmPass: UnrealBloomPass;
-let bloomPass: BloomPass;
-let FilmPass: FilmPass;
 let outputPass: OutputPass;
 let renderPass: RenderPass;
 let vector: Vector2;
-let intensity: number = 3.16548;
+let intensity: number = 6;
 let mappingHDR: EquirectangularReflectionMapping;
 let ambientLight: AmbientLight;
 let pointLight_0: PointLight;
@@ -107,10 +97,7 @@ function init() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
-    renderer.toneMapping = cineonFilmic = CineonToneMapping;
-    // reinhard = ReinhardToneMapping;
-    // acesFilmic = ACESFilmicToneMapping
-    // cineonFilmic = CineonToneMapping
+    renderer.toneMapping = reinhard = ReinhardToneMapping;
     renderer.toneMappingExposure = 1;
     renderer.outputColorSpace = colorEncoder = SRGBColorSpace;
 
@@ -147,15 +134,15 @@ function init() {
   {
     worldHDR = new RGBELoader()
       .setPath("/src/assets/dir_HDR/")
-      .load("gradient_01.hdr", () => {
+      .load("gradient_03.hdr", () => {
         worldHDR.mapping = mappingHDR =
           EquirectangularReflectionMapping;
       });
 
-    // scene.background = worldHDR;
+    scene.background = worldHDR;
     scene.environment = worldHDR;
     scene.backgroundBlurriness = 0.8213;
-    scene.backgroundIntensity = 0.22456;
+    scene.backgroundIntensity = 0.52456;
     console.log(worldHDR);
 
     // ===== 🌫 FOG =====
@@ -165,9 +152,9 @@ function init() {
 
   // ===== 💡 LIGHTS =====
   {
-    ambientLight = new AmbientLight("white", 0.31789);
-    pointLight_0 = new PointLight(0x85ccb8, 8, 20);
-    pointLight_1 = new PointLight(0x9f85cc, 8, 20);
+    ambientLight = new AmbientLight("white", 0.51789);
+    pointLight_0 = new PointLight("white", 4, 100);
+    pointLight_1 = new PointLight("white", 4, 100);
 
     pointLight_0.castShadow = true;
     pointLight_0.shadow.radius = 4;
@@ -182,48 +169,50 @@ function init() {
     pointLight_1.shadow.mapSize.width = 2048;
     pointLight_1.shadow.mapSize.height = 2048;
 
-    pointLight_0.position.set(0, 3, 2);
-    pointLight_1.position.set(0, 3, 2);
-    group.add(ambientLight);
-    group.add(pointLight_0, pointLight_1);
+    pointLight_0.position.set(0, 2, 1.5);
+    pointLight_1.position.set(0, 1.3, -1.5);
+    group.add(pointLight_0, pointLight_1, ambientLight);
   }
 
   // ===== 📦 OBJECTS =====
   {
     const sideLength = 1;
-    /*  const cubeGeometry = new BoxGeometry(sideLength, sideLength, sideLength)
-    const cubeMaterial = new MeshStandardMaterial({
-      color: '#f69f1f',
-      metalness: 0.5,
-      roughness: 0.7,
-    })
-    cube = new Mesh(cubeGeometry, cubeMaterial)
-    cube.castShadow = true
-    cube.position.y = 0.5
-    */
-    const CircleGeometry_1 = new CircleGeometry(0.68, 32);
-    const circleMaterial_1 = new MeshStandardMaterial({
-      color: "#FBDD00",
-      metalness: 0.1,
-      envMap: worldHDR,
-      envMapIntensity: intensity,
-      side: 2,
-      roughness: 0.4
-    });
-    const CircleGeometry_2 = new CircleGeometry(5, 32);
-    const circleMaterial_2 = new MeshStandardMaterial({
-      color: "#B32800",
-      metalness: 0.1,
-      roughness: 0.4
-    });
-    const CircleGeometry_3 = new CircleGeometry(5, 32);
-    const circleMaterial_3 = new MeshStandardMaterial({
-      color: "#7f0000",
-      metalness: 0.1,
-      roughness: 0.4
-    });
+    /*
+      const cubeGeometry = new BoxGeometry(sideLength, sideLength, sideLength)
+      const cubeMaterial = new MeshStandardMaterial({
+        color: '#f69f1f',
+        metalness: 0.5,
+        roughness: 0.7,
+      })
+      cube = new Mesh(cubeGeometry, cubeMaterial)
+      cube.castShadow = true
+      cube.position.y = 0.5
 
-    circle = new Mesh(CircleGeometry_1, circleMaterial_1);
+      const CircleGeometry_1 = new CircleGeometry(0.68, 32);
+      const circleMaterial_1 = new MeshStandardMaterial({
+        color: "#FBDD00",
+        metalness: 0.1,
+        envMap: worldHDR,
+        envMapIntensity: intensity,
+        side: 2,
+        roughness: 0.4
+      });
+      const CircleGeometry_2 = new CircleGeometry(5, 32);
+      const circleMaterial_2 = new MeshStandardMaterial({
+        color: "#B32800",
+        metalness: 0.1,
+        roughness: 0.4
+      });
+      const CircleGeometry_3 = new CircleGeometry(5, 32);
+      const circleMaterial_3 = new MeshStandardMaterial({
+        color: "#7f0000",
+        metalness: 0.1,
+        roughness: 0.4
+      });
+
+      circle = new Mesh(CircleGeometry_1, circleMaterial_1);
+
+    */
 
     const planeGeometry = new PlaneGeometry(3, 3);
     const planeMaterial = new MeshLambertMaterial({
@@ -239,7 +228,7 @@ function init() {
     plane.receiveShadow = true;
 
     // scene.add(cube);
-    group.add(plane, circle);
+    group.add(plane);
   }
 
   // ===== 📦 GLTF OBJECTS & MATERIALS =====
@@ -251,139 +240,14 @@ function init() {
     materials.encoding = colorEncoder = SRGBColorSpace;
 
     // BODYLOW
-    const basecolorMap_bodyLow = materials.load(
-      "/src/assets/3d_models/textures/body_low/bl_bc.jpg"
-    );
-    const metallicMap_bodyLow = materials.load(
-      "/src/assets/3d_models/textures/body_low/bl_ml.jpg"
-    );
-    const normalMap_bodyLow = materials.load(
-      "/src/assets/3d_models/textures/body_low/bl_nm.jpg"
-    );
-    const roughnessMap_bodyLow = materials.load(
-      "/src/assets/3d_models/textures/body_low/bl_rh.jpg"
-    );
-    const emissiveMap_bodyLow = materials.load(
-      "/src/assets/3d_models/textures/body_low/bl_sc.jpg"
+    const basecolorMap_scene = materials.load(
+      "/src/assets/3d_models/textures/default_baseColor.png"
     );
 
-    // CLOTHLOW
-
-    const basecolorMap_clothLow = materials.load(
-      "/src/assets/3d_models/textures/cloth_low/cl_bc.png"
-    );
-    const metallicMap_clothLow = materials.load(
-      "/src/assets/3d_models/textures/cloth_low/cl_ml.png"
-    );
-    const normalMap_clothLow = materials.load(
-      "/src/assets/3d_models/textures/cloth_low/cl_nm.jpg"
-    );
-    const roughnessMap_clothLow = materials.load(
-      "/src/assets/3d_models/textures/cloth_low/cl_rh.png"
-    );
-
-    // HEADLOW
-    const basecolorMap_headLow = materials.load(
-      "/src/assets/3d_models/textures/head_low/hl_bc.jpg"
-    );
-    const metallicMap_headLow = materials.load(
-      "/src/assets/3d_models/textures/head_low/hl_ml.jpg"
-    );
-    const normalMap_headLow = materials.load(
-      "/src/assets/3d_models/textures/head_low/hl_nm.jpg"
-    );
-    const roughnessMap_headLow = materials.load(
-      "/src/assets/3d_models/textures/head_low/hl_rh.jpg"
-    );
-    const emissiveMap_headLow = materials.load(
-      "/src/assets/3d_models/textures/head_low/hl_sc.jpg"
-    );
-
-    // const conf = new MeshPhongMaterial()
-
-    // JEWERLOW
-    const basecolorMap_jewerLow = materials.load(
-      "/src/assets/3d_models/textures/jewer_low/jl_bc.jpg"
-    );
-    const metallicMap_jewerLow = materials.load(
-      "/src/assets/3d_models/textures/jewer_low/jl_ml.jpg"
-    );
-    const normalMap_jewerLow = materials.load(
-      "/src/assets/3d_models/textures/jewer_low/jl_nm.jpg"
-    );
-    const roughnessMap_jewerLow = materials.load(
-      "/src/assets/3d_models/textures/jewer_low/jl_rh.jpg"
-    );
-
-    // ROCKLOW
-    const basecolorMap_rockLow = materials.load(
-      "/src/assets/3d_models/textures/rock_low/rl_bc.jpg"
-    );
-    const metallicMap_rockLow = materials.load(
-      "/src/assets/3d_models/textures/rock_low/rl_ml.jpg"
-    );
-    const normalMap_rockLow = materials.load(
-      "/src/assets/3d_models/textures/rock_low/rl_nm.jpg"
-    );
-    const roughnessMap_rockLow = materials.load(
-      "/src/assets/3d_models/textures/rock_low/rl_rh.jpg"
-    );
-    /*
-    // Lacks ...sc file
-    const emissiveMap_rockLow = materials.load(
-      "/src/assets/3d_models/textures/rock_low/rl_rh.jpg"
-    );
-    */
-
-    const MESH_BODYLOW = new MeshStandardMaterial({
-      map: basecolorMap_bodyLow,
-      // metalness: "",
-      metalnessMap: metallicMap_bodyLow,
-      normalMap: normalMap_bodyLow,
-      // roughness: "",
-      roughnessMap: roughnessMap_bodyLow,
-      emissiveMap: emissiveMap_bodyLow,
-      envMap: worldHDR,
-      envMapIntensity: intensity
-    });
-    const MESH_HEADLOW = new MeshStandardMaterial({
-      map: basecolorMap_headLow,
-      // metalness: "",
-      metalnessMap: metallicMap_headLow,
-      normalMap: normalMap_headLow,
-      // roughness: "",
-      roughnessMap: roughnessMap_headLow,
-      emissiveMap: emissiveMap_headLow,
-      envMap: worldHDR,
-      envMapIntensity: intensity
-    });
-    const MESH_JEWERLOW = new MeshStandardMaterial({
-      map: basecolorMap_jewerLow,
-      // metalness: "",
-      metalnessMap: metallicMap_jewerLow,
-      normalMap: normalMap_jewerLow,
-      // roughness: "",
-      roughnessMap: roughnessMap_jewerLow,
-      envMap: worldHDR,
-      envMapIntensity: intensity
-    });
-    const MESH_ROCKLOW = new MeshStandardMaterial({
-      map: basecolorMap_rockLow,
-      // metalness: "",
-      metalnessMap: metallicMap_rockLow,
-      normalMap: normalMap_rockLow,
-      // roughness: "",
-      roughnessMap: roughnessMap_rockLow,
-      envMap: worldHDR,
-      envMapIntensity: intensity
-    });
-    const MESH_CLOTHLOW = new MeshStandardMaterial({
-      map: basecolorMap_clothLow,
-      // metalness: "",
-      metalnessMap: metallicMap_clothLow,
-      normalMap: normalMap_clothLow,
-      // roughness: "",
-      roughnessMap: roughnessMap_clothLow,
+    const SCENE = new MeshStandardMaterial({
+      map: basecolorMap_scene,
+      metalness: 0.2,
+      roughness: 0.5,
       envMap: worldHDR,
       envMapIntensity: intensity
     });
@@ -391,25 +255,21 @@ function init() {
     // GLTF LOADER
 
     obj = new GLTFLoader();
+
     obj.load(
-      "/src/assets/3d_models/mmk.gltf",
+      "/src/assets/3d_models/scene.gltf",
       (gltf: object | undefined) => {
         // CLOTHLOW
-        gltf.scene.children[0].material = MESH_CLOTHLOW;
-        // BODYLOW
-        gltf.scene.children[1].material = MESH_BODYLOW;
-        // HEADLOW
-        gltf.scene.children[2].material = MESH_HEADLOW;
-        // ROCKLOW
-        gltf.scene.children[3].material = MESH_ROCKLOW;
-        // JEWERLOW
-        gltf.scene.children[4].material = MESH_JEWERLOW;
+        gltf.scene.children[0].material = SCENE;
 
-        gltf.scene.scale.setScalar(0.48);
+        gltf.scene.scale.setScalar(1);
 
-        gltf.scene.position.set = (0, -10, 0);
+        gltf.scene.position.y = 1;
+        gltf.scene.position.z = 0.5;
 
-        // group.add(gltf.scene);
+        group.add(gltf.scene);
+
+        console.log(gltf);
       }
     );
 
@@ -423,48 +283,15 @@ function init() {
       0.1,
       100
     );
-    // camera.position.set(2, 2, 10);
-    camera.position.set(0, 0, 3.5);
+    camera.position.set(3, 2.2, 3);
 
     // ===== 🕹️ CONTROLS =====
 
     cameraControls = new OrbitControls(camera, canvas);
     cameraControls.enableDamping = true;
     cameraControls.target.set = (0, 0, 0);
-    console.log(cameraControls);
     cameraControls.autoRotate = false;
     cameraControls.update();
-
-    // MOVES THE OBJECT ON DRAG
-
-    /*
-      dragControls = new DragControls(
-        [obj],
-        camera,
-        renderer.domElement
-      );
-      dragControls.addEventListener("hoveron", event => {
-        event.object.material.emissive.set("orange");
-      });
-      dragControls.addEventListener("hoveroff", event => {
-        event.object.material.emissive.set("black");
-      });
-      dragControls.addEventListener("dragstart", event => {
-        cameraControls.enabled = false;
-        animation.play = false;
-        event.object.material.emissive.set("black");
-        event.object.material.opacity = 0.7;
-        event.object.material.needsUpdate = true;
-      });
-      dragControls.addEventListener("dragend", event => {
-        cameraControls.enabled = true;
-        animation.play = true;
-        event.object.material.emissive.set("black");
-        event.object.material.opacity = 1;
-        event.object.material.needsUpdate = true;
-      });
-      dragControls.enabled = false;
-    */
 
     // Full screen
     window.addEventListener("dblclick", event => {
@@ -483,12 +310,12 @@ function init() {
     pointLightHelper = new PointLightHelper(
       pointLight_0,
       undefined,
-      "orange"
+      "white"
     );
     pointLightHelper_2 = new PointLightHelper(
       pointLight_1,
       undefined,
-      "orange"
+      "white"
     );
     group.add(pointLightHelper, pointLightHelper_2);
     pointLightHelper.visible = false;
@@ -551,12 +378,11 @@ function init() {
   {
     afterImgPass = new AfterimagePass();
 
-    afterImgPass.uniforms["damp"].value = 0.85;
+    afterImgPass.uniforms["damp"].value = 0.75;
 
     const postParams = {
-      exposure: 0.699,
-      bloomStrength: 0.65,
-      bloomThreshold: 0.68,
+      bloomStrength: 1,
+      bloomThreshold: 0.4,
       bloomRadius: 1
     };
 
@@ -564,21 +390,18 @@ function init() {
 
     renderPass = new RenderPass(scene, camera);
 
-    console.log(renderPass);
-
     vector = new Vector2((canvas.clientWidth, canvas.clientHeight));
 
     unrealBlmPass = new UnrealBloomPass(vector, 1.5, 0.4, 0.85);
     // POST PARAMS
     unrealBlmPass.threshold = postParams.bloomThreshold;
-    // unrealBlmPass.exposure = postParams.exposure;
     unrealBlmPass.strength = postParams.bloomStrength;
     unrealBlmPass.radius = postParams.bloomRadius;
 
     // COMPOSER
     composer = new EffectComposer(renderer);
     composer.addPass(renderPass);
-    // composer.addPass(afterImgPass);
+    composer.addPass(afterImgPass);
     composer.addPass(unrealBlmPass);
     composer.addPass((outputPass = new OutputPass()));
   }
@@ -602,7 +425,7 @@ function animate() {
 
   cameraControls.update();
 
-  // renderer.render(scene, camera);
+  // renderer.render(scene, camera)
 
   composer.render();
 }
