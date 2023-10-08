@@ -21,6 +21,7 @@ import {
   PerspectiveCamera,
   Vector2,
   PlaneGeometry,
+  CircleGeometry,
   PointLight,
   PointLightHelper,
   Group,
@@ -35,7 +36,8 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { BloomPass } from "three/addons/postprocessing/BloomPass.js";
+import { GlitchPass } from "three/addons/postprocessing/GlitchPass.js";
+// import { BloomPass } from "three/addons/postprocessing/BloomPass.js";
 import { FilmPass } from "three/addons/postprocessing/FilmPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import Stats from "three/examples/jsm/libs/stats.module";
@@ -56,6 +58,7 @@ let fog: FogExp2;
 let scene: Scene;
 let group: Group;
 let obj: GLTFLoader;
+let circle: mesh;
 let materials: TextureLoader;
 let loadingManager: LoadingManager;
 let worldHDR: RGBELoader;
@@ -68,7 +71,7 @@ let FilmPass: FilmPass;
 let outputPass: OutputPass;
 let renderPass: RenderPass;
 let vector: Vector2;
-let intensity: number = 5.16548;
+let intensity: number = 3.16548;
 let mappingHDR: EquirectangularReflectionMapping;
 let ambientLight: AmbientLight;
 let pointLight_0: PointLight;
@@ -99,14 +102,16 @@ function init() {
       gammaFactor: 1.2,
       gammaOutput: true
     });
+    renderer.setClearColor(0x000000, 0);
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = PCFSoftShadowMap;
-    renderer.toneMapping = reinhard = ReinhardToneMapping;
+    renderer.toneMapping = cineonFilmic = CineonToneMapping;
+    // reinhard = ReinhardToneMapping;
     // acesFilmic = ACESFilmicToneMapping
     // cineonFilmic = CineonToneMapping
-    renderer.toneMappingExposure = 0.699;
+    renderer.toneMappingExposure = 1;
     renderer.outputColorSpace = colorEncoder = SRGBColorSpace;
 
     console.log(renderer);
@@ -142,20 +147,20 @@ function init() {
   {
     worldHDR = new RGBELoader()
       .setPath("/src/assets/dir_HDR/")
-      .load("blaubeuren_night_4k.hdr", () => {
+      .load("gradient_01.hdr", () => {
         worldHDR.mapping = mappingHDR =
           EquirectangularReflectionMapping;
       });
 
-    scene.background = worldHDR;
+    // scene.background = worldHDR;
     scene.environment = worldHDR;
     scene.backgroundBlurriness = 0.8213;
-    scene.backgroundIntensity = 0.32456;
+    scene.backgroundIntensity = 0.22456;
     console.log(worldHDR);
 
     // ===== 🌫 FOG =====
 
-    scene.fog = fog = new FogExp2(0x11151c, 0.17);
+    scene.fog = fog = new FogExp2(0x11151c, 0.1);
   }
 
   // ===== 💡 LIGHTS =====
@@ -185,6 +190,41 @@ function init() {
 
   // ===== 📦 OBJECTS =====
   {
+    const sideLength = 1;
+    /*  const cubeGeometry = new BoxGeometry(sideLength, sideLength, sideLength)
+    const cubeMaterial = new MeshStandardMaterial({
+      color: '#f69f1f',
+      metalness: 0.5,
+      roughness: 0.7,
+    })
+    cube = new Mesh(cubeGeometry, cubeMaterial)
+    cube.castShadow = true
+    cube.position.y = 0.5
+    */
+    const CircleGeometry_1 = new CircleGeometry(0.68, 32);
+    const circleMaterial_1 = new MeshStandardMaterial({
+      color: "#FBDD00",
+      metalness: 0.1,
+      envMap: worldHDR,
+      envMapIntensity: intensity,
+      side: 2,
+      roughness: 0.4
+    });
+    const CircleGeometry_2 = new CircleGeometry(5, 32);
+    const circleMaterial_2 = new MeshStandardMaterial({
+      color: "#B32800",
+      metalness: 0.1,
+      roughness: 0.4
+    });
+    const CircleGeometry_3 = new CircleGeometry(5, 32);
+    const circleMaterial_3 = new MeshStandardMaterial({
+      color: "#7f0000",
+      metalness: 0.1,
+      roughness: 0.4
+    });
+
+    circle = new Mesh(CircleGeometry_1, circleMaterial_1);
+
     const planeGeometry = new PlaneGeometry(3, 3);
     const planeMaterial = new MeshLambertMaterial({
       color: "gray",
@@ -199,7 +239,7 @@ function init() {
     plane.receiveShadow = true;
 
     // scene.add(cube);
-    group.add(plane);
+    group.add(plane, circle);
   }
 
   // ===== 📦 GLTF OBJECTS & MATERIALS =====
@@ -369,7 +409,7 @@ function init() {
 
         gltf.scene.position.set = (0, -10, 0);
 
-        group.add(gltf.scene);
+        // group.add(gltf.scene);
       }
     );
 
@@ -383,7 +423,8 @@ function init() {
       0.1,
       100
     );
-    camera.position.set(2, 2, 10);
+    // camera.position.set(2, 2, 10);
+    camera.position.set(0, 0, 3.5);
 
     // ===== 🕹️ CONTROLS =====
 
@@ -505,7 +546,7 @@ function init() {
     gui.close();
   }
 
-  // ==== 😨 DEBUG GUI ====
+  // ==== Boom ====
 
   {
     afterImgPass = new AfterimagePass();
@@ -514,19 +555,20 @@ function init() {
 
     const postParams = {
       exposure: 0.699,
-      bloomStrength: 1,
-      bloomThreshold: 0.6,
+      bloomStrength: 0.65,
+      bloomThreshold: 0.68,
       bloomRadius: 1
     };
 
     // UNREAL BLOOM PASS
 
+    renderPass = new RenderPass(scene, camera);
+
+    console.log(renderPass);
+
     vector = new Vector2((canvas.clientWidth, canvas.clientHeight));
 
-    console.log(canvas);
-
     unrealBlmPass = new UnrealBloomPass(vector, 1.5, 0.4, 0.85);
-
     // POST PARAMS
     unrealBlmPass.threshold = postParams.bloomThreshold;
     // unrealBlmPass.exposure = postParams.exposure;
@@ -535,8 +577,8 @@ function init() {
 
     // COMPOSER
     composer = new EffectComposer(renderer);
-    composer.addPass((renderPass = new RenderPass(scene, camera)));
-    composer.addPass(afterImgPass);
+    composer.addPass(renderPass);
+    // composer.addPass(afterImgPass);
     composer.addPass(unrealBlmPass);
     composer.addPass((outputPass = new OutputPass()));
   }
