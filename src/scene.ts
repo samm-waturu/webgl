@@ -2,7 +2,6 @@ import GUI from "lil-gui";
 import {
   AmbientLight,
   AxesHelper,
-  BoxGeometry,
   Clock,
   GridHelper,
   LoadingManager,
@@ -10,9 +9,6 @@ import {
   MeshLambertMaterial,
   MeshStandardMaterial,
   FogExp2,
-  SRGBColorSpace,
-  TextureLoader,
-  PCFSoftShadowMap,
   EquirectangularReflectionMapping,
   ReinhardToneMapping,
   PerspectiveCamera,
@@ -25,16 +21,13 @@ import {
   Scene,
   WebGLRenderer
 } from "three";
-import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { DragControls } from "three/examples/jsm/controls/DragControls";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { FilmPass } from "three/addons/postprocessing/FilmPass.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { AfterimagePass } from "three/examples/jsm/postprocessing/AfterimagePass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import Stats from "three/examples/jsm/libs/stats.module";
 import * as animations from "./helpers/animations";
 import { toggleFullScreen } from "./helpers/fullscreen";
@@ -44,37 +37,27 @@ import "./style.css";
 const CANVAS_ID = "scene";
 
 let canvas: HTMLElement;
-let reinhard: ReinhardToneMapping;
 let renderer: WebGLRenderer;
-let colorEncoder: SRGBColorSpace;
-let fog: FogExp2;
 let scene: Scene;
 let group: Group;
-let obj: GLTFLoader;
-let circle: mesh;
-let materials: TextureLoader;
 let loadingManager: LoadingManager;
-let worldHDR: RGBELoader;
 let composer: EffectComposer;
 let afterImgPass: AfterimagePass;
 let unrealBlmPass: UnrealBloomPass;
-let outputPass: OutputPass;
 let renderPass: RenderPass;
 let vector: Vector2;
-let intensity: number = 6;
-let mappingHDR: EquirectangularReflectionMapping;
 let ambientLight: AmbientLight;
 let pointLight_0: PointLight;
-let pointLight_1: pointLight;
+let pointLight_1: PointLight;
 let camera: PerspectiveCamera;
 let cameraControls: OrbitControls;
-let dragControls: DragControls;
 let axesHelper: AxesHelper;
 let pointLightHelper: PointLightHelper;
 let pointLightHelper_2: PointLightHelper;
 let clock: Clock;
 let stats: Stats;
 let gui: GUI;
+let worldHDR: any;
 
 const animation = { enabled: false, play: true };
 
@@ -88,18 +71,13 @@ function init() {
     renderer = new WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: true,
-      gammaFactor: 1.2,
-      gammaOutput: true
+      alpha: true
     });
     renderer.setClearColor(0x000000, 0);
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = PCFSoftShadowMap;
-    renderer.toneMapping = reinhard = ReinhardToneMapping;
+    renderer.toneMapping = ReinhardToneMapping;
     renderer.toneMappingExposure = 1;
-    renderer.outputColorSpace = colorEncoder = SRGBColorSpace;
 
     console.log(renderer);
 
@@ -135,8 +113,7 @@ function init() {
     worldHDR = new RGBELoader()
       .setPath("/src/assets/dir_HDR/")
       .load("gradient_03.hdr", () => {
-        worldHDR.mapping = mappingHDR =
-          EquirectangularReflectionMapping;
+        worldHDR.mapping = EquirectangularReflectionMapping;
       });
 
     scene.background = worldHDR;
@@ -147,7 +124,7 @@ function init() {
 
     // ===== 🌫 FOG =====
 
-    scene.fog = fog = new FogExp2(0x11151c, 0.1);
+    scene.fog = new FogExp2(0x11151c, 0.1);
   }
 
   // ===== 💡 LIGHTS =====
@@ -176,43 +153,18 @@ function init() {
 
   // ===== 📦 OBJECTS =====
   {
-    const sideLength = 1;
-    /*
-      const cubeGeometry = new BoxGeometry(sideLength, sideLength, sideLength)
-      const cubeMaterial = new MeshStandardMaterial({
-        color: '#f69f1f',
-        metalness: 0.5,
-        roughness: 0.7,
-      })
-      cube = new Mesh(cubeGeometry, cubeMaterial)
-      cube.castShadow = true
-      cube.position.y = 0.5
+    const intensity = 1;
+    const CircleGeometry_1 = new CircleGeometry(0.68, 32);
+    const CircleMaterial_1 = new MeshStandardMaterial({
+      color: "#FBDD00",
+      metalness: 0.1,
+      envMap: worldHDR,
+      envMapIntensity: intensity,
+      side: 2,
+      roughness: 0.4
+    });
 
-      const CircleGeometry_1 = new CircleGeometry(0.68, 32);
-      const circleMaterial_1 = new MeshStandardMaterial({
-        color: "#FBDD00",
-        metalness: 0.1,
-        envMap: worldHDR,
-        envMapIntensity: intensity,
-        side: 2,
-        roughness: 0.4
-      });
-      const CircleGeometry_2 = new CircleGeometry(5, 32);
-      const circleMaterial_2 = new MeshStandardMaterial({
-        color: "#B32800",
-        metalness: 0.1,
-        roughness: 0.4
-      });
-      const CircleGeometry_3 = new CircleGeometry(5, 32);
-      const circleMaterial_3 = new MeshStandardMaterial({
-        color: "#7f0000",
-        metalness: 0.1,
-        roughness: 0.4
-      });
-
-      circle = new Mesh(CircleGeometry_1, circleMaterial_1);
-
-    */
+    const circle = new Mesh(CircleGeometry_1, CircleMaterial_1);
 
     const planeGeometry = new PlaneGeometry(3, 3);
     const planeMaterial = new MeshLambertMaterial({
@@ -228,7 +180,7 @@ function init() {
     plane.receiveShadow = true;
 
     // scene.add(cube);
-    group.add(plane);
+    group.add(plane, circle);
   }
 
   // ===== 📦 GLTF OBJECTS & MATERIALS =====
@@ -236,45 +188,6 @@ function init() {
   // MATERIALS & TEXTURES
 
   {
-    materials = new TextureLoader();
-    materials.encoding = colorEncoder = SRGBColorSpace;
-
-    // BODYLOW
-    const basecolorMap_scene = materials.load(
-      "/src/assets/3d_models/textures/default_baseColor.png"
-    );
-
-    const SCENE = new MeshStandardMaterial({
-      map: basecolorMap_scene,
-      metalness: 0.2,
-      roughness: 0.5,
-      envMap: worldHDR,
-      envMapIntensity: intensity
-    });
-
-    // GLTF LOADER
-
-    obj = new GLTFLoader();
-
-    obj.load(
-      "/src/assets/3d_models/scene.gltf",
-      (gltf: object | undefined) => {
-        // CLOTHLOW
-        gltf.scene.children[0].material = SCENE;
-
-        gltf.scene.scale.setScalar(1);
-
-        gltf.scene.position.y = 1;
-        gltf.scene.position.z = 0.5;
-
-        group.add(gltf.scene);
-
-        console.log(gltf);
-      }
-    );
-
-    console.log(obj, materials);
-
     // ===== 🎥 CAMERA =====
 
     camera = new PerspectiveCamera(
@@ -289,7 +202,6 @@ function init() {
 
     cameraControls = new OrbitControls(camera, canvas);
     cameraControls.enableDamping = true;
-    cameraControls.target.set = (0, 0, 0);
     cameraControls.autoRotate = false;
     cameraControls.update();
 
@@ -399,11 +311,12 @@ function init() {
     unrealBlmPass.radius = postParams.bloomRadius;
 
     // COMPOSER
+    const outputPass = new OutputPass();
     composer = new EffectComposer(renderer);
     composer.addPass(renderPass);
     composer.addPass(afterImgPass);
     composer.addPass(unrealBlmPass);
-    composer.addPass((outputPass = new OutputPass()));
+    composer.addPass(outputPass);
   }
 }
 
